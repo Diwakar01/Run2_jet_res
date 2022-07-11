@@ -1,0 +1,56 @@
+double Pi = 3.14159265359;
+
+float deltaR(float eta1, float phi1, float eta2, float phi2){
+  float deta = fabs(eta1 - eta2);
+  float dphi = fabs(phi1 - phi2);
+  if(dphi > Pi)dphi = 2*Pi - dphi;
+  float dr = sqrt(deta*deta + dphi*dphi);
+  return dr;
+}
+
+
+void plot_res(){
+  TFile* f = new TFile("hltJetMetNtuple.root","open");
+  TTree* t = (TTree*)(f->Get("demo/tree"));
+  std::vector<float>* pfjet_pt = new std::vector<float>();
+  std::vector<float>* pfjet_eta = new std::vector<float>();
+  std::vector<float>* pfjet_phi = new std::vector<float>();
+  std::vector<float>* trigobject_pt = new std::vector<float>();
+  std::vector<float>* trigobject_eta = new std::vector<float>();
+  std::vector<float>* trigobject_phi = new std::vector<float>();
+  t->SetBranchAddress("pfjet_pt",&pfjet_pt);
+  t->SetBranchAddress("pfjet_eta",&pfjet_eta);
+  t->SetBranchAddress("pfjet_phi",&pfjet_phi);
+  t->SetBranchAddress("trigobject_pt",&trigobject_pt);
+  t->SetBranchAddress("trigobject_eta",&trigobject_eta);
+  t->SetBranchAddress("trigobject_phi",&trigobject_phi);
+
+  TH1F* h = new TH1F("h","h",50, -1000, 1000);
+  int count = 0;
+
+  Int_t nevents = t->GetEntries();
+  //for(int ievent = 0; ievent < nevents; ievent++){
+    for(int ievent = 6; ievent < 7; ievent++){
+    cout<<endl<<"EVENT="<<ievent<<endl;
+    t->GetEntry(ievent);
+    for(Int_t ijet = 0; ijet < pfjet_pt->size(); ijet++){
+      //      cout<<endl<<"jet no = "<<ijet<<endl<<"pfjet_pt->at(ijet)="<<pfjet_pt->at(ijet)<<endl;
+      for(Int_t itrigobject = 0; itrigobject < trigobject_pt->size(); itrigobject++){
+	//	cout<<endl<<"trig obj no = "<<itrigobject<<endl<<"trigobject_pt->at(itrigobject) = "<<trigobject_pt->at(itrigobject)<<endl;
+	//	cout<<endl<<"deltaR="<<deltaR(pfjet_eta->at(ijet), pfjet_phi->at(ijet), trigobject_eta->at(itrigobject), trigobject_phi->at(itrigobject))<<endl;
+	if(deltaR(pfjet_eta->at(ijet), pfjet_phi->at(ijet), trigobject_eta->at(itrigobject), trigobject_phi->at(itrigobject)) < 0.4){
+	  cout<<endl<<"filling h with jet, trigobj"<<ijet<<","<<itrigobject<<endl;
+	  count++;
+	  h->Fill(pfjet_pt->at(ijet)-trigobject_pt->at(itrigobject));
+	  break;
+	}
+      }
+
+    }
+    cout<<endl<<"count="<<count<<endl;
+    }
+  TFile* fout = new TFile("out.root","recreate");
+  fout->cd();
+  h->Write();
+}
+
